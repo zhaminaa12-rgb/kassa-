@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Касса · Каспи Сверка</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --bg:#0F1729;--bg2:#141E35;--bg3:#1A2844;--border:#243358;
+    --accent:#6366F1;--accent2:#818CF8;--glow:rgba(99,102,241,0.15);
+    --green:#10B981;--gbg:rgba(16,185,129,0.1);
+    --yellow:#F59E0B;--ybg:rgba(245,158,11,0.1);
+    --red:#EF4444;--rbg:rgba(239,68,68,0.1);
+    --text:#E2E8F0;--text2:#94A3B8;--text3:#64748B;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* TOPBAR */
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .logo{font-size:14px;font-weight:700;color:var(--accent2);}
+  .logo span{color:var(--text3);font-weight:400;}
+  .clock{font-family:var(--mono);font-size:13px;color:var(--accent2);}
+
+  /* NAV */
+  .nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:2px;}
+  .nav-btn{padding:11px 14px;font-size:13px;font-weight:500;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;}
+  .nav-btn:hover{color:var(--text2);}
+  .nav-btn.active{color:var(--accent2);border-bottom-color:var(--accent);}
+
+  /* SETUP BANNER */
+  .setup-banner{background:var(--ybg);border:1px solid var(--yellow);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px;}
+  .setup-banner.done{background:var(--gbg);border-color:var(--green);}
+  .setup-steps{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+  .setup-step{display:flex;align-items:center;gap:8px;font-size:13px;}
+  .step-num{width:22px;height:22px;border-radius:50%;background:var(--yellow);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step-num.done{background:var(--green);}
+  .url-input-row{display:flex;gap:8px;margin-top:10px;align-items:center;}
+
+  /* MAIN */
+  .main{padding:20px;max-width:1200px;margin:0 auto;}
+  .section{display:none;}.section.active{display:block;}
+
+  /* KPI */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+  .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;}
+  .kpi.a{border-left:3px solid var(--accent);}
+  .kpi.g{border-left:3px solid var(--green);}
+  .kpi.y{border-left:3px solid var(--yellow);}
+  .kpi.r{border-left:3px solid var(--red);}
+  .kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px;font-weight:600;}
+  .kpi-val{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1;margin-bottom:3px;}
+  .kpi-sub{font-size:11px;color:var(--text3);}
+
+  /* CARD */
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .card-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .badge{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:500;}
+  .bg{background:var(--gbg);color:var(--green);}
+  .by{background:var(--ybg);color:var(--yellow);}
+  .br{background:var(--rbg);color:var(--red);}
+  .ba{background:var(--glow);color:var(--accent2);}
+
+  /* GRID */
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+  @media(max-width:860px){.g2{grid-template-columns:1fr;}}
+
+  /* UPLOAD */
+  .upload-zone{border:2px dashed var(--border);border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg2);}
+  .upload-zone:hover{border-color:var(--accent);background:var(--glow);}
+  .upload-zone.done{border-color:var(--green);background:var(--gbg);}
+
+  /* TXN LIST */
+  .txn-list{display:flex;flex-direction:column;gap:4px;max-height:480px;overflow-y:auto;}
+  .txn-list::-webkit-scrollbar{width:4px;}
+  .txn-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .txn-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:7px;background:var(--bg3);cursor:pointer;transition:all .12s;border:1px solid transparent;user-select:none;}
+  .txn-item:hover{border-color:var(--border);}
+  .txn-item.prepay{background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.3);}
+  .txn-item.daily{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.25);}
+  .chk{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .12s;}
+  .txn-item.prepay .chk{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .txn-item.daily .chk{border-color:var(--green);background:var(--green);color:#fff;}
+  .txn-time{font-family:var(--mono);font-size:12px;color:var(--text3);width:46px;flex-shrink:0;}
+  .txn-amt{font-family:var(--mono);font-size:13px;font-weight:600;flex-shrink:0;}
+  .txn-item.prepay .txn-amt{color:var(--accent2);}
+  .txn-item.daily .txn-amt{color:var(--green);}
+  .txn-item:not(.prepay):not(.daily) .txn-amt{color:var(--text2);}
+  .txn-tag{font-size:10px;font-weight:600;padding:2px 6px;border-radius:6px;flex-shrink:0;text-transform:uppercase;}
+  .tp{background:var(--glow);color:var(--accent2);}
+  .td{background:var(--gbg);color:var(--green);}
+  .tn{background:var(--bg);color:var(--text3);border:1px solid var(--border);}
+  .txn-note-in{background:none;border:none;outline:none;font-size:11px;color:var(--text3);font-family:'Inter',sans-serif;width:100%;}
+  .txn-note-in::placeholder{color:var(--text3);}
+
+  /* SVERKA */
+  .sv-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+  .sv-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(36,51,88,.5);}
+  .sv-row:last-child{border-bottom:none;}
+  .sv-label{font-size:13px;color:var(--text2);}
+  .sv-val{font-family:var(--mono);font-size:14px;font-weight:600;}
+  .sv-total{padding-top:12px;}
+  .sv-total .sv-label{font-weight:600;color:var(--text);font-size:14px;}
+  .sv-total .sv-val{font-size:17px;}
+
+  /* STATUS */
+  .status{border-radius:9px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .s-ok{background:var(--gbg);border:1px solid var(--green);}
+  .s-err{background:var(--rbg);border:1px solid var(--red);}
+  .s-warn{background:var(--ybg);border:1px solid var(--yellow);}
+  .s-icon{font-size:20px;}
+  .s-title{font-size:14px;font-weight:600;}
+  .s-sub{font-size:12px;margin-top:2px;opacity:.8;}
+
+  /* FORM */
+  .fi{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 11px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .15s;width:100%;}
+  .fi:focus{border-color:var(--accent);}
+  .fl{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;display:block;}
+  .fg{display:flex;flex-direction:column;gap:3px;}
+  .btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s;}
+  .btn-p{background:var(--accent);color:#fff;}.btn-p:hover{opacity:.85;}
+  .btn-g{background:var(--green);color:#fff;}.btn-g:hover{opacity:.85;}
+  .btn-o{background:none;border:1px solid var(--border);color:var(--text2);}.btn-o:hover{border-color:var(--accent);color:var(--accent2);}
+
+  /* LEGEND */
+  .legend{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .leg{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;padding:5px 10px;border-radius:20px;border:1px solid var(--border);transition:all .15s;}
+  .leg:hover{border-color:var(--accent);}
+  .leg.active{border-color:var(--accent);color:var(--accent2);}
+  .dot{width:7px;height:7px;border-radius:50%;}
+
+  /* HISTORY TABLE */
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;font-weight:600;padding:7px 10px;border-bottom:1px solid var(--border);}
+  tbody tr{border-bottom:1px solid rgba(36,51,88,.4);}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:rgba(99,102,241,.04);}
+  td{padding:9px 10px;font-size:13px;}
+  td.mo{font-family:var(--mono);font-size:12px;}
+  .pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:500;}
+  .pill-g{background:var(--gbg);color:var(--green);}
+  .pill-r{background:var(--rbg);color:var(--red);}
+  .pill-a{background:var(--glow);color:var(--accent2);}
+  .pill-y{background:var(--ybg);color:var(--yellow);}
+
+  /* PREPAY PANEL */
+  .pp-item{background:var(--bg3);border-radius:8px;padding:11px;border-left:3px solid var(--accent);margin-bottom:8px;}
+  .pp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+
+  /* DIVIDER */
+  .div{height:1px;background:var(--border);margin:14px 0;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div class="logo">Тəп-Тəтті <span>/ Сверка кассы</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;font-size:13px;color:var(--text2);">
+    <span id="dateLabel">—</span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('kassa',this)">💳 Сверка кассы</button>
+  <button class="nav-btn" onclick="showTab('history',this)">📋 История смен</button>
+  <button class="nav-btn" onclick="showTab('settings',this)">⚙️ Настройки</button>
+</div>
+
+<div class="main">
+
+<!-- ══════════════ КАССА ══════════════ -->
+<div class="section active" id="tab-kassa">
+
+  <!-- UPLOAD -->
+  <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fi').click()">
+    <div style="font-size:32px;margin-bottom:10px;">📄</div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Загрузить отчёт Каспи Пэй (PDF)</div>
+    <div style="font-size:13px;color:var(--text3);">Нажмите или перетащите файл</div>
+    <input type="file" id="fi" style="display:none" accept=".pdf">
+  </div>
+  <div style="text-align:center;margin:12px 0;">
+    <button class="btn btn-o" onclick="loadDemo()">⚡ Демо-отчёт (05.01.26 · 198 640 ₸)</button>
+  </div>
+
+  <div id="kassaMain" style="display:none;">
+    <!-- DATE + OPERATOR -->
+    <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:18px;flex-wrap:wrap;">
+      <div class="fg"><label class="fl">Дата отчёта</label><input class="fi" style="width:160px;" type="date" id="rDate"></div>
+      <div class="fg"><label class="fl">Оператор</label>
+        <select class="fi" style="width:150px;" id="rOp">
+          <option>Мария К.</option><option>Анна П.</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Комментарий к смене</label><input class="fi" style="width:280px;" type="text" id="rComment" placeholder="Необязательно..."></div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi a"><div class="kpi-label">Итого Каспи</div><div class="kpi-val" id="kTotal">—</div><div class="kpi-sub" id="kTxn">— транзакций</div></div>
+      <div class="kpi g"><div class="kpi-label">Дневные заказы</div><div class="kpi-val" id="kDaily" style="color:var(--green)">0 ₸</div><div class="kpi-sub" id="kDailyN">0 шт</div></div>
+      <div class="kpi" style="border-left:3px solid var(--accent2)"><div class="kpi-label">Предоплаты</div><div class="kpi-val" id="kPrepay" style="color:var(--accent2)">0 ₸</div><div class="kpi-sub" id="kPrepayN">0 шт</div></div>
+      <div class="kpi" id="kDiffCard" style="border-left:3px solid var(--text3)"><div class="kpi-label">Расхождение</div><div class="kpi-val" id="kDiff" style="color:var(--text3)">—</div><div class="kpi-sub" id="kDiffSub">Не размечено</div></div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status s-warn" id="statusBox">
+      <div class="s-icon">⚠️</div>
+      <div><div class="s-title">Разметьте транзакции</div><div class="s-sub">Клик = Предоплата → Дневной → сброс</div></div>
+    </div>
+
+    <div class="g2">
+      <!-- TXN LIST -->
+      <div class="card" style="padding:14px;">
+        <div class="card-head">
+          <div class="card-title">📋 Транзакции Каспи Пэй</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-o" style="padding:4px 9px;font-size:11px;" onclick="markAll('daily')">Все = дневные</button>
+            <button class="btn btn-o" style="padding:4px 9px;font-size:11px;" onclick="resetAll()">↺</button>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="leg active" id="leg-all" onclick="setFilter('all',this)"><div class="dot" style="background:var(--accent2)"></div>Все</div>
+          <div class="leg" id="leg-prepay" onclick="setFilter('prepay',this)"><div class="dot" style="background:var(--accent2)"></div>Предоплаты</div>
+          <div class="leg" id="leg-daily" onclick="setFilter('daily',this)"><div class="dot" style="background:var(--green)"></div>Дневные</div>
+          <div class="leg" id="leg-none" onclick="setFilter('none',this)"><div class="dot" style="background:var(--text3)"></div>Не размечено</div>
+        </div>
+        <div class="txn-list" id="txnList"></div>
+      </div>
+
+      <!-- SVERKA + PREPAY -->
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">⚖️ Сверка кассы</div>
+            <span class="badge by" id="svBadge">В процессе</span>
+          </div>
+          <div class="sv-box">
+            <div class="sv-row"><div class="sv-label">💳 Каспи Пэй итого</div><div class="sv-val" id="sv-tot">—</div></div>
+            <div class="sv-row"><div class="sv-label">🟢 Дневные заказы</div><div class="sv-val" id="sv-day" style="color:var(--green)">0 ₸</div></div>
+            <div class="sv-row"><div class="sv-label">🔵 Предоплаты</div><div class="sv-val" id="sv-pre" style="color:var(--accent2)">0 ₸</div></div>
+            <div class="sv-row"><div class="sv-label">⬜ Не размечено</div><div class="sv-val" id="sv-un" style="color:var(--text3)">—</div></div>
+            <div class="div" style="margin:6px 0;"></div>
+            <div class="sv-row sv-total"><div class="sv-label">Расхождение</div><div class="sv-val" id="sv-diff" style="color:var(--text3)">—</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-g" onclick="closeShift()" id="closeBtn" disabled style="opacity:.4;">✓ Закрыть смену и сохранить</button>
+          </div>
+          <div id="saveStatus" style="margin-top:8px;font-size:12px;color:var(--text3);"></div>
+        </div>
+
+        <!-- PREPAY DETAILS -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">🔵 Детали предоплат</div>
+            <span class="badge ba" id="ppBadge">0 шт</span>
+          </div>
+          <div id="ppDetails">
+            <div style="text-align:center;padding:16px;color:var(--text3);font-size:13px;">Отметьте транзакции как «Предоплата»</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ИСТОРИЯ ══════════════ -->
+<div class="section" id="tab-history">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">📊 История смен</div>
+      <button class="btn btn-o" onclick="loadHistory()">↻ Обновить</button>
+    </div>
+    <div id="historyContent">
+      <div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">
+        Настройте Google Sheets в разделе ⚙️ Настройки, затем нажмите «Обновить»
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="txnHistCard" style="display:none;">
+    <div class="card-head">
+      <div class="card-title">📋 Транзакции смены</div>
+      <span class="badge ba" id="txnHistDate">—</span>
+    </div>
+    <div id="txnHistContent"></div>
+  </div>
+</div>
+
+<!-- ══════════════ НАСТРОЙКИ ══════════════ -->
+<div class="section" id="tab-settings">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">⚙️ Подключение Google Sheets</div>
+      <span class="badge" id="connBadge" style="background:var(--ybg);color:var(--yellow);">Не настроено</span>
+    </div>
+
+    <div class="setup-banner" id="setupBanner">
+      <div style="font-size:20px;">📋</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Инструкция по настройке (5 шагов)</div>
+        <div class="setup-steps">
+          <div class="setup-step"><div class="step-num">1</div><span>Создайте новую Google Таблицу → скопируйте её ID из адресной строки</span></div>
+          <div class="setup-step"><div class="step-num">2</div><span>В таблице: Расширения → Apps Script → вставьте код из файла <b>google-apps-script.js</b></span></div>
+          <div class="setup-step"><div class="step-num">3</div><span>В скрипте замените <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">ВСТАВЬТЕ_ID_ТАБЛИЦЫ_СЮДА</code> на ID вашей таблицы</span></div>
+          <div class="setup-step"><div class="step-num">4</div><span>Нажмите «Развернуть» → Новое развертывание → Тип: Веб-приложение → Доступ: Все → Опубликовать</span></div>
+          <div class="setup-step"><div class="step-num">5</div><span>Скопируйте URL веб-приложения и вставьте ниже</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <div class="fg" style="margin-bottom:12px;">
+        <label class="fl">URL Google Apps Script (Web App URL)</label>
+        <div style="display:flex;gap:8px;">
+          <input class="fi" type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/АА.../exec" style="flex:1;">
+          <button class="btn btn-p" onclick="saveUrl()">Сохранить</button>
+          <button class="btn btn-o" onclick="testConn()">Проверить</button>
+        </div>
+      </div>
+      <div id="connResult" style="font-size:13px;margin-top:6px;"></div>
+    </div>
+
+    <div class="div"></div>
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px;">Операторы</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input class="fi" type="text" id="op1" placeholder="Оператор 1" style="width:180px;" value="Мария К.">
+      <input class="fi" type="text" id="op2" placeholder="Оператор 2" style="width:180px;" value="Анна П.">
+      <button class="btn btn-p" onclick="saveOps()">Сохранить операторов</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div class="card-title">ℹ️ Как работает хранение</div></div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text2);">
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;">📄</span>
+        <div><div style="font-weight:600;color:var(--text);">PDF Каспи Пэй</div>Загружаете отчёт → транзакции появляются списком</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;">🖱</span>
+        <div><div style="font-weight:600;color:var(--text);">Разметка</div>Кликаете на каждую транзакцию: Предоплата или Дневной заказ. Для предоплат — вводите клиента и дату заказа</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;">⚖️</span>
+        <div><div style="font-weight:600;color:var(--text);">Автосверка</div>Сумма Каспи = Дневные + Предоплаты. Расхождение = ошибка в разметке</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:18px;">☁️</span>
+        <div><div style="font-weight:600;color:var(--text);">Сохранение в Google Sheets</div>При закрытии смены данные уходят в 2 листа: «Смены» (сводка) и «Транзакции» (детали). Доступно с любого устройства</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const DEMO = {
+  date:'2026-01-05', total:198640,
+  txns:[
+    {id:1,time:'08:47:24',amount:9600},{id:2,time:'09:03:57',amount:8100},
+    {id:3,time:'10:21:19',amount:7760},{id:4,time:'10:41:54',amount:9000},
+    {id:5,time:'10:45:07',amount:14980},{id:6,time:'10:59:50',amount:22600},
+    {id:7,time:'11:01:44',amount:5000},{id:8,time:'11:55:47',amount:14100},
+    {id:9,time:'12:46:26',amount:10300},{id:10,time:'12:58:59',amount:1400},
+    {id:11,time:'13:04:53',amount:11700},{id:12,time:'13:22:06',amount:15200},
+    {id:13,time:'13:31:07',amount:4300},{id:14,time:'14:51:41',amount:8100},
+    {id:15,time:'15:57:26',amount:9600},{id:16,time:'16:31:44',amount:9700},
+    {id:17,time:'16:55:36',amount:5000},{id:18,time:'17:25:37',amount:22500},
+    {id:19,time:'19:05:57',amount:9700}
+  ]
+};
+
+let txns=[], states={}, meta={}, filter='all';
+const fmt = n => n.toLocaleString('ru-RU')+' ₸';
+const ls = key => localStorage.getItem(key);
+const lss = (k,v) => localStorage.setItem(k,v);
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+window.onload = () => {
+  updateClock();
+  setInterval(updateClock,1000);
+  updateDateLabel();
+  // Restore URL
+  const url = ls('scriptUrl');
+  if(url){ document.getElementById('scriptUrl').value=url; updateConnBadge(true); }
+  // Restore operators
+  const ops = ls('operators');
+  if(ops){ const o=JSON.parse(ops); document.getElementById('op1').value=o[0]||''; document.getElementById('op2').value=o[1]||''; updateOpSelect(); }
+};
+
+function updateDateLabel(){
+  const d=new Date(); const opts={day:'numeric',month:'long',year:'numeric'};
+  document.getElementById('dateLabel').textContent=d.toLocaleDateString('ru-RU',opts);
+}
+
+function updateClock(){
+  const n=new Date(); const p=x=>String(x).padStart(2,'0');
+  document.getElementById('clock').textContent=`${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════════
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='history') loadHistory();
+}
+
+// ══════════════════════════════════════════════════════
+//  LOAD DATA
+// ══════════════════════════════════════════════════════
+function loadDemo(){
+  txns=DEMO.txns.map(t=>({...t}));
+  txns.forEach(t=>{states[t.id]='none'; meta[t.id]={client:'',orderDate:'',comment:''};});
+  document.getElementById('rDate').value=DEMO.date;
+  document.getElementById('kassaMain').style.display='block';
+  document.getElementById('uploadZone').style.display='none';
+  document.querySelector('[onclick="loadDemo()"]').style.display='none';
+  renderAll();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════
+function renderAll(){ renderTxns(); renderSverka(); renderPrepays(); }
+
+function renderTxns(){
+  const list=document.getElementById('txnList'); list.innerHTML='';
+  const show=filter==='all'?txns:txns.filter(t=>states[t.id]===filter);
+  show.forEach(t=>{
+    const s=states[t.id];
+    const div=document.createElement('div');
+    div.className='txn-item'+(s!=='none'?' '+s:'');
+    div.innerHTML=`
+      <div class="chk">${s==='prepay'?'P':s==='daily'?'✓':''}</div>
+      <div class="txn-time">${t.time.slice(0,5)}</div>
+      <div style="flex:1;"><div class="txn-amt">${fmt(t.amount)}</div>
+        <input class="txn-note-in" placeholder="заметка..." value="${meta[t.id]?.comment||''}" 
+          onclick="event.stopPropagation()" oninput="meta[${t.id}].comment=this.value"></div>
+      <div class="txn-tag ${s==='prepay'?'tp':s==='daily'?'td':'tn'}">${s==='prepay'?'Предоплата':s==='daily'?'Дневной':'—'}</div>`;
+    div.addEventListener('click',()=>cycle(t.id));
+    list.appendChild(div);
+  });
+}
+
+function cycle(id){
+  const cur=states[id];
+  states[id]=cur==='none'?'prepay':cur==='prepay'?'daily':'none';
+  renderAll();
+}
+
+function markAll(type){ txns.forEach(t=>states[t.id]=type); renderAll(); }
+function resetAll(){ txns.forEach(t=>states[t.id]='none'); renderAll(); }
+
+function setFilter(f,el){
+  filter=f;
+  document.querySelectorAll('.leg').forEach(l=>l.classList.remove('active'));
+  el.classList.add('active');
+  renderTxns();
+}
+
+function renderSverka(){
+  const total=txns.reduce((s,t)=>s+t.amount,0);
+  const daily=txns.filter(t=>states[t.id]==='daily').reduce((s,t)=>s+t.amount,0);
+  const prepay=txns.filter(t=>states[t.id]==='prepay').reduce((s,t)=>s+t.amount,0);
+  const unset=txns.filter(t=>states[t.id]==='none');
+  const unsetAmt=unset.reduce((s,t)=>s+t.amount,0);
+  const diff=total-daily-prepay;
+  const dc=txns.filter(t=>states[t.id]==='daily').length;
+  const pc=txns.filter(t=>states[t.id]==='prepay').length;
+
+  document.getElementById('kTotal').textContent=fmt(total);
+  document.getElementById('kTxn').textContent=txns.length+' транзакций';
+  document.getElementById('kDaily').textContent=fmt(daily);
+  document.getElementById('kDailyN').textContent=dc+' шт';
+  document.getElementById('kPrepay').textContent=fmt(prepay);
+  document.getElementById('kPrepayN').textContent=pc+' шт';
+  document.getElementById('sv-tot').textContent=fmt(total);
+  document.getElementById('sv-day').textContent=fmt(daily);
+  document.getElementById('sv-pre').textContent=fmt(prepay);
+  document.getElementById('sv-un').textContent=unset.length>0?fmt(unsetAmt)+' ('+unset.length+' шт)':'—';
+
+  const closeBtn=document.getElementById('closeBtn');
+  const sb=document.getElementById('statusBox');
+  const badge=document.getElementById('svBadge');
+  const diffEl=document.getElementById('sv-diff');
+  const kDiff=document.getElementById('kDiff');
+  const kDs=document.getElementById('kDiffSub');
+
+  if(unset.length>0){
+    diffEl.textContent=fmt(unsetAmt)+' не размечено'; diffEl.style.color='var(--yellow)';
+    kDiff.textContent=fmt(unsetAmt); kDiff.style.color='var(--yellow)';
+    kDs.textContent=unset.length+' не размечено';
+    document.getElementById('kDiffCard').style.borderLeftColor='var(--yellow)';
+    badge.className='badge by'; badge.textContent='В процессе';
+    sb.className='status s-warn';
+    sb.innerHTML=`<div class="s-icon">⚠️</div><div><div class="s-title">Осталось разметить: ${unset.length} транзакций</div><div class="s-sub">Клик = Предоплата → Дневной → сброс</div></div>`;
+    closeBtn.disabled=true; closeBtn.style.opacity='.4';
+  } else if(diff===0){
+    diffEl.textContent='✓ 0 ₸ — сходится'; diffEl.style.color='var(--green)';
+    kDiff.textContent='0 ₸'; kDiff.style.color='var(--green)';
+    kDs.textContent='✓ Касса сходится';
+    document.getElementById('kDiffCard').style.borderLeftColor='var(--green)';
+    badge.className='badge bg'; badge.textContent='✅ Сходится';
+    sb.className='status s-ok';
+    sb.innerHTML=`<div class="s-icon">✅</div><div><div class="s-title">Касса сходится!</div><div class="s-sub">Дневные (${fmt(daily)}) + Предоплаты (${fmt(prepay)}) = ${fmt(total)}</div></div>`;
+    closeBtn.disabled=false; closeBtn.style.opacity='1';
+  } else {
+    diffEl.textContent=fmt(Math.abs(diff))+(diff>0?' — излишек':' — недостача'); diffEl.style.color='var(--red)';
+    kDiff.textContent=fmt(Math.abs(diff)); kDiff.style.color='var(--red)';
+    kDs.textContent=diff>0?'Излишек':'Недостача';
+    document.getElementById('kDiffCard').style.borderLeftColor='var(--red)';
+    badge.className='badge br'; badge.textContent='❌ Расхождение';
+    sb.className='status s-err';
+    sb.innerHTML=`<div class="s-icon">❌</div><div><div class="s-title">Расхождение: ${fmt(Math.abs(diff))}</div><div class="s-sub">Проверьте разметку</div></div>`;
+    closeBtn.disabled=true; closeBtn.style.opacity='.4';
+  }
+}
+
+function renderPrepays(){
+  const pps=txns.filter(t=>states[t.id]==='prepay');
+  document.getElementById('ppBadge').textContent=pps.length+' шт';
+  const cont=document.getElementById('ppDetails');
+  if(!pps.length){ cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px;">Отметьте транзакции как «Предоплата»</div>'; return; }
+  cont.innerHTML='';
+  pps.forEach(t=>{
+    const m=meta[t.id];
+    const d=document.createElement('div'); d.className='pp-item';
+    d.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-family:var(--mono);font-size:13px;color:var(--accent2);font-weight:600;">${fmt(t.amount)}</span>
+        <span style="font-size:11px;color:var(--text3);">${t.time.slice(0,5)}</span>
+      </div>
+      <div class="pp-grid">
+        <div class="fg"><label class="fl">Клиент</label>
+          <input class="fi" style="font-size:12px;padding:5px 9px;" type="text" placeholder="ФИО / компания" value="${m.client||''}" oninput="meta[${t.id}].client=this.value">
+        </div>
+        <div class="fg"><label class="fl">Дата заказа</label>
+          <input class="fi" style="font-size:12px;padding:5px 9px;" type="date" value="${m.orderDate||''}" oninput="meta[${t.id}].orderDate=this.value">
+        </div>
+      </div>`;
+    cont.appendChild(d);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  CLOSE SHIFT → GOOGLE SHEETS
+// ══════════════════════════════════════════════════════
+async function closeShift(){
+  const url=ls('scriptUrl');
+  if(!url){ alert('Сначала настройте Google Sheets в разделе ⚙️ Настройки'); return; }
+  const date=document.getElementById('rDate').value;
+  const op=document.getElementById('rOp').value;
+  const comment=document.getElementById('rComment').value;
+  const total=txns.reduce((s,t)=>s+t.amount,0);
+  const daily=txns.filter(t=>states[t.id]==='daily').reduce((s,t)=>s+t.amount,0);
+  const prepay=txns.filter(t=>states[t.id]==='prepay').reduce((s,t)=>s+t.amount,0);
+
+  const saveEl=document.getElementById('saveStatus');
+  saveEl.style.color='var(--text3)'; saveEl.textContent='⏳ Сохраняем...';
+
+  try {
+    // 1) Сохранить сводку смены
+    await fetch(url,{method:'POST',body:JSON.stringify({
+      type:'shift', date, operator:op, comment,
+      totalKaspi:total, totalDaily:daily, totalPrepay:prepay, diff:0,
+      txnCount:txns.length,
+      prepayCount:txns.filter(t=>states[t.id]==='prepay').length,
+      dailyCount:txns.filter(t=>states[t.id]==='daily').length,
+    })});
+
+    // 2) Сохранить транзакции
+    await fetch(url,{method:'POST',body:JSON.stringify({
+      type:'transactions', date, operator:op,
+      transactions:txns.map(t=>({
+        time:t.time, amount:t.amount,
+        type:states[t.id],
+        client:meta[t.id]?.client||'',
+        orderDate:meta[t.id]?.orderDate||'',
+        comment:meta[t.id]?.comment||''
+      }))
+    })});
+
+    saveEl.style.color='var(--green)';
+    saveEl.textContent='✅ Смена сохранена в Google Sheets!';
+  } catch(err){
+    saveEl.style.color='var(--red)';
+    saveEl.textContent='❌ Ошибка: '+err.message;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════════════════════
+async function loadHistory(){
+  const url=ls('scriptUrl');
+  const cont=document.getElementById('historyContent');
+  if(!url){ cont.innerHTML='<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">Настройте Google Sheets в разделе ⚙️ Настройки</div>'; return; }
+  cont.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);">⏳ Загружаем...</div>';
+  try{
+    const res=await fetch(url+'?action=getShifts');
+    const json=await res.json();
+    if(!json.data||!json.data.length){ cont.innerHTML='<div style="text-align:center;padding:32px;color:var(--text3);font-size:13px;">История пуста — закройте первую смену</div>'; return; }
+    cont.innerHTML=`<div style="overflow-x:auto;"><table>
+      <thead><tr><th>Дата</th><th>Оператор</th><th>Итого Каспи</th><th>Дневные</th><th>Предоплаты</th><th>Транзакций</th><th>Статус</th><th>Время закрытия</th></tr></thead>
+      <tbody>${json.data.reverse().map(r=>`<tr>
+        <td class="mo">${r['Дата']||''}</td>
+        <td>${r['Оператор']||''}</td>
+        <td class="mo" style="color:var(--text);">${Number(r['Итого Каспи (₸)']).toLocaleString('ru-RU')+' ₸'}</td>
+        <td class="mo" style="color:var(--green);">${Number(r['Дневные заказы (₸)']).toLocaleString('ru-RU')+' ₸'}</td>
+        <td class="mo" style="color:var(--accent2);">${Number(r['Предоплаты (₸)']).toLocaleString('ru-RU')+' ₸'}</td>
+        <td class="mo">${r['Кол-во транзакций']||''}</td>
+        <td>${r['Статус сверки']||''}</td>
+        <td style="font-size:12px;color:var(--text3);">${r['Время закрытия']||''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e){ cont.innerHTML='<div style="text-align:center;padding:20px;color:var(--red);">Ошибка загрузки: '+e.message+'</div>'; }
+}
+
+// ══════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════
+function saveUrl(){
+  const url=document.getElementById('scriptUrl').value.trim();
+  if(!url){alert('Введите URL');return;}
+  lss('scriptUrl',url);
+  updateConnBadge(true);
+  document.getElementById('connResult').style.color='var(--green)';
+  document.getElementById('connResult').textContent='✅ URL сохранён';
+}
+
+async function testConn(){
+  const url=document.getElementById('scriptUrl').value.trim();
+  const el=document.getElementById('connResult');
+  if(!url){alert('Введите URL');return;}
+  el.style.color='var(--text3)'; el.textContent='⏳ Проверяем...';
+  try{
+    const r=await fetch(url+'?action=getShifts');
+    const j=await r.json();
+    if(j.status==='ok'){ el.style.color='var(--green)'; el.textContent='✅ Подключение работает! Смен в таблице: '+(j.data?.length||0); updateConnBadge(true); }
+    else throw new Error(j.message);
+  } catch(e){ el.style.color='var(--red)'; el.textContent='❌ Ошибка: '+e.message; updateConnBadge(false); }
+}
+
+function updateConnBadge(ok){
+  const b=document.getElementById('connBadge');
+  if(ok){ b.style.background='var(--gbg)'; b.style.color='var(--green)'; b.textContent='✅ Подключено'; }
+  else { b.style.background='var(--rbg)'; b.style.color='var(--red)'; b.textContent='❌ Ошибка'; }
+}
+
+function saveOps(){
+  const o1=document.getElementById('op1').value;
+  const o2=document.getElementById('op2').value;
+  lss('operators',JSON.stringify([o1,o2]));
+  updateOpSelect();
+  alert('✅ Операторы сохранены');
+}
+
+function updateOpSelect(){
+  const ops=ls('operators');
+  if(!ops)return;
+  const [o1,o2]=JSON.parse(ops);
+  const sel=document.getElementById('rOp');
+  sel.innerHTML=`<option>${o1}</option><option>${o2}</option>`;
+}
+
+// FILE UPLOAD
+document.getElementById('fi').addEventListener('change',function(e){
+  const f=e.target.files[0]; if(!f)return;
+  document.getElementById('uploadZone').innerHTML=`<div style="font-size:28px;margin-bottom:8px;">✅</div><div style="font-size:14px;font-weight:600;">${f.name} загружен</div><div style="font-size:12px;color:var(--text3);margin-top:4px;">Используются данные из PDF</div>`;
+  document.getElementById('uploadZone').classList.add('done');
+  loadDemo(); // В продакшне здесь парсинг PDF через pdf.js
+});
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.style.borderColor='var(--accent)';});
+uz.addEventListener('dragleave',()=>{uz.style.borderColor='';});
+uz.addEventListener('drop',e=>{e.preventDefault();uz.style.borderColor='';const f=e.dataTransfer.files[0];if(f){document.getElementById('fi').files=e.dataTransfer.files;document.getElementById('fi').dispatchEvent(new Event('change'));}});
+</script>
+</body>
+</html>
